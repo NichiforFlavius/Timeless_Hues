@@ -1,0 +1,11 @@
+---
+tiny:
+  model_path:
+    ...
+  model_size:
+    256
+large:
+  model_path:
+    ...
+  model_size:
+    512

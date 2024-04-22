@@ -1,10 +1,9 @@
 # importing modules
 import io
-import logging
 from datetime import datetime
 
 import streamlit as st
-from PIL import Image, ImageFilter, ImageEnhance
+from PIL import ImageFilter, ImageEnhance
 
 from ML_Side.load_onnx_model import *
 
@@ -12,36 +11,61 @@ logging.basicConfig(filename='app_running.log', level=logging.INFO, format='%(as
                     datefmt='%H:%M - %d %B %Y')
 
 
+def colorize_image(edited_img, image_name, enabled=False):
+    if enabled:
+        sess, input_name = load_onnx_model(r'F:\Facultate\Dizertatie\Proiect\models\large_model_simplified.onnx')
+        image_cv2 = np.array(edited_img)
+        h, w = image_cv2.shape[:2]
+        tensor_rgb = preprocess_image_for_inference(image_cv2, 512)
+        image_cv2 = (image_cv2 / 255.0).astype(np.float32)
+        orig_l = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2Lab)[:, :, :1]
+        result = run_inference(tensor_rgb, input_name, sess, w, h, orig_l)
+        np.save(image_name, result, allow_pickle=True)
+        return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+    else:
+        return edited_img
+
+
 def main():
     st.set_page_config(page_title="Image editing app")
     st.header("Timeless Hues 📸")
     st.subheader("Upload an image to get started")
-
     image = st.file_uploader("Upload an image", type=[
         "png", "jpg"], accept_multiple_files=False, )
 
     # if image uploaded
     if image:
         # getting image in PIL
-        img = Image.open(image)
+        if Path(f'{image.name}.npy').exists():
+            edited_img = Image.fromarray(cv2.cvtColor(np.load(f'{image.name}.npy'), cv2.COLOR_BGR2RGB))
+        else:
+            img = Image.open(image)
+            edited_img = img
+
         # adding sidebar
         st.sidebar.header("Editing panel")
         # writing settings code
         st.sidebar.write("Settings")
-        setting_sharp = st.sidebar.slider("Sharpness")
-        setting_color = st.sidebar.slider("Color")
-        setting_brightness = st.sidebar.slider("Exposure")
-        setting_contrast = st.sidebar.slider("Contrast")
+        setting_sharp = st.sidebar.slider("Sharpness", min_value=0.01, max_value=10.0, value=1.0)  # done
+        setting_color = st.sidebar.slider("Color", min_value=0.01, max_value=10.0, value=1.0)  # done
+        setting_brightness = st.sidebar.slider("Exposure", min_value=0.01, max_value=10.0, value=1.0)  # done
+        setting_contrast = st.sidebar.slider("Contrast", min_value=0.01, max_value=10.0, value=1.0)  # done
         setting_flip_image = st.sidebar.selectbox("Flip Image", options=(
             "select flip direction", "FLIP_TOP_BOTTOM", "FLIP_LEFT_RIGHT"))
-
+        colorize_button = st.button('Colorize')
         # writing filters code
         st.sidebar.write("Filters")
-        filter_black_and_white = st.sidebar.checkbox("Black and white")
         filter_blur = st.sidebar.checkbox("Blur")
 
+        if colorize_button:
+            print('here')
+            enable_colorize = True
+        else:
+            print('there')
+            enable_colorize = False
+
         if filter_blur:
-            filter_blur_strength = st.sidebar.slider("Select Blur strength")
+            filter_blur_strength = st.sidebar.slider("Select Blur strength", min_value=0.00, max_value=10.0, value=0.0)
 
         # checking setting_sharp value
         if setting_sharp:
@@ -70,8 +94,12 @@ def main():
         # checking setting_flip_image
         flip_direction = setting_flip_image
 
+        # colorizing image:
+        with st.spinner('Colorizing...'):
+            edited_img = colorize_image(edited_img, image.name, enable_colorize)
+
         # implementing sharpness
-        sharp = ImageEnhance.Sharpness(img)
+        sharp = ImageEnhance.Sharpness(edited_img)
         edited_img = sharp.enhance(sharp_value)
 
         # implementing colors
@@ -94,26 +122,12 @@ def main():
         else:
             pass
 
-        # implementing filters
-        if filter_black_and_white:
-            edited_img = edited_img.convert(mode='L')
-
         if filter_blur:
             if filter_blur_strength:
                 set_blur = filter_blur_strength
                 edited_img = edited_img.filter(ImageFilter.GaussianBlur(set_blur))
 
         # displaying edited image
-
-        if st.button('Colorize'):
-            sess, input_name = load_onnx_model(r'F:\Facultate\Dizertatie\Proiect\models\large_model_simplified.onnx')
-            image_cv2 = np.array(img)
-            h, w = image_cv2.shape[:2]
-            tensor_rgb = preprocess_image_for_inference(image_cv2, 512)
-            image_cv2 = (image_cv2 / 255.0).astype(np.float32)
-            orig_l = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2Lab)[:, :, :1]
-            result = run_inference(tensor_rgb, input_name, sess, w, h, orig_l)
-            edited_img = Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
 
         st.image(edited_img)
 
@@ -122,6 +136,9 @@ def main():
         img_bytes.seek(0)
 
         st.download_button('Download image', data=img_bytes, file_name=f'revived_image_{datetime.now().strftime("%d_%m_%Y_%H:%M")}.png', mime='image/png')
+        if st.button('Clear cache'):
+            if Path(f'{image.name}.npy').exists():
+                Path(f'{image.name}.npy').unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

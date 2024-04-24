@@ -1,33 +1,27 @@
 # importing modules
 import io
 from datetime import datetime
-
 import streamlit as st
-from PIL import ImageFilter, ImageEnhance
+from PIL import Image, ImageFilter, ImageEnhance
 
 from ML_Side.load_onnx_model import *
+from Utils.image_processing import colorize_image
+from Utils.config_files import load_onnx_model_info
+from Web_Side.OptionsClass import ImageOptions
 
-logging.basicConfig(filename='app_running.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s - triggered by %(filename)s',
+LOGGING_DIR = Path.cwd().joinpath('logs')
+LOGGING_DIR.mkdir(parents=True, exist_ok=True)
+
+logging.basicConfig(filename=LOGGING_DIR / 'main_app.log',
+                    level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s - triggered by %(filename)s',
                     datefmt='%H:%M - %d %B %Y')
 
-
-def colorize_image(edited_img, image_name, enabled=False):
-    if enabled:
-        sess, input_name = load_onnx_model(r'F:\Facultate\Dizertatie\Proiect\models\large_model_simplified.onnx')
-        image_cv2 = np.array(edited_img)
-        h, w = image_cv2.shape[:2]
-        tensor_rgb = preprocess_image_for_inference(image_cv2, 512)
-        image_cv2 = (image_cv2 / 255.0).astype(np.float32)
-        orig_l = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2Lab)[:, :, :1]
-        result = run_inference(tensor_rgb, input_name, sess, w, h, orig_l)
-        np.save(image_name, result, allow_pickle=True)
-        return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
-    else:
-        return edited_img
+MODEL_CONFIG_PATH = './ML_Side/model_loading_config.yaml'
 
 
 def main():
-    st.set_page_config(page_title="Image editing app")
+    st.set_page_config(page_title="Timeless Hues")
     st.header("Timeless Hues 📸")
     st.subheader("Upload an image to get started")
     image = st.file_uploader("Upload an image", type=[
@@ -37,7 +31,7 @@ def main():
     if image:
         # getting image in PIL
         if Path(f'{image.name}.npy').exists():
-            edited_img = Image.fromarray(cv2.cvtColor(np.load(f'{image.name}.npy'), cv2.COLOR_BGR2RGB))
+            edited_img = Image.fromarray(np.load(f'{image.name}.npy'))
         else:
             img = Image.open(image)
             edited_img = img
@@ -96,7 +90,8 @@ def main():
 
         # colorizing image:
         with st.spinner('Colorizing...'):
-            edited_img = colorize_image(edited_img, image.name, enable_colorize)
+            model_name, model_size = load_onnx_model_info(MODEL_CONFIG_PATH)
+            edited_img = colorize_image(model_name, model_size, edited_img, image.name, enable_colorize)
 
         # implementing sharpness
         sharp = ImageEnhance.Sharpness(edited_img)

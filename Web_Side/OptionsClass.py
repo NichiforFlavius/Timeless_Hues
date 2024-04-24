@@ -1,8 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from pathlib import Path
-from rich.console import Console
-from tqdm import tqdm
+from datetime import datetime
 
 
 def get_unique_image_name():
@@ -18,7 +15,6 @@ class ImageOptions:
 
     horizontal_flip: bool = field(default=False, metadata={'description': 'The flag that states if the image is flipped horizontally'})
     vertical_flip: bool = field(default=False, metadata={'description': 'The flag that states if the image is flipped vertically'})
-    grayscale: bool = field(default=False, metadata={'description': 'The flag that states if the image is in grayscale (CIELAB space)'})
     blur: float = field(default=0, metadata={'description': 'The value for the applied blur'})
 
     download_name: str = field(default_factory=get_unique_image_name)
@@ -30,7 +26,6 @@ class ImageOptions:
         "sharpness": "Default error message",
         "horizontal_flip": "Default error message",
         "vertical_flip": "Default error message",
-        "grayscale": "Default error message",
         "blur": "Default error message",
     })
 
@@ -41,7 +36,6 @@ class ImageOptions:
         self.validate_sharpness()
         self.validate_h_flip()
         self.validate_v_flip()
-        self.validate_grayscale()
         self.validate_blur()
 
     def validate_contrast(self):
@@ -60,9 +54,6 @@ class ImageOptions:
         ...
 
     def validate_v_flip(self):
-        ...
-
-    def validate_grayscale(self):
         ...
 
     def validate_blur(self):

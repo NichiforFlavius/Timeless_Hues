@@ -30,12 +30,13 @@ def __load_model_config(config_file_path: str | Path) -> dict[str, any] | None:
 
 def load_onnx_model_info(config_file_path: str | Path, model_type: str = "large"):
     """
+        Loads the configuration file for the model parameters.
 
-    Args:
-        config_file_path:
-        model_type:
-    Returns:
-
+        Args:
+            config_file_path (str | Path): path to the model in onnx format.
+            model_type (str): type of the model. Accepted "large"/"tiny". Default is large.
+        Returns:
+            tuple(str | Path, int): tuple containing the path to the model and its input size in pixels(512, 128, etc.)
     """
 
     config_data = __load_model_config(config_file_path)

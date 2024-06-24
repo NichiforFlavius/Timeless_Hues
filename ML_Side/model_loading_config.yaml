@@ -1,11 +1,11 @@
 ---
 tiny:
   model_path:
-    F:\Facultate\Dizertatie\Proiect\models\tiny_model_simplified.onnx
+    ../
   model_size:
     256
 large:
   model_path:
-    F:\Facultate\Dizertatie\Proiect\models\large_model_simplified.onnx
+    E:\Disertatie\Modele\large_model_simplified.onnx
   model_size:
     512

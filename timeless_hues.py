@@ -4,17 +4,18 @@ import streamlit as st
 from PIL import Image, ImageFilter, ImageEnhance
 
 from ML_Side.load_onnx_model import *
-from Utils.image_processing import colorize_image
+from Utils.image_processing import colorize_image, colorfulness_score_mapping, compute_colorfulness_score
 from Utils.config_files import load_onnx_model_info
 from Web_Side.OptionsClass import ImageOptions
 
 CACHE_DIR = Path.cwd().joinpath('cache_files')
-MODEL_CONFIG_PATH = './ML_Side/model_loading_config.yaml'
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+MODEL_CONFIG_PATH = 'Timeless_Hues\ML_Side\model_loading_config.yaml'
 
 
 def main():
     st.set_page_config(page_title="Timeless Hues")
-    st.header("Timeless Hues 📸")
+    st.header("Timeless Hues 🤖+🎨🖌️ ➜ 🖼️")
     st.subheader("Upload an image to get started")
     image = st.file_uploader("Upload an image", type=["png", "jpg"], accept_multiple_files=False, )
 
@@ -105,7 +106,9 @@ def main():
                 options.blur = filter_blur_strength
                 edited_img = edited_img.filter(ImageFilter.GaussianBlur(options.blur))
 
-        st.image(edited_img)
+        st.image(edited_img, use_column_width=True)
+        score = round(compute_colorfulness_score(np.array(edited_img)), 4)
+        st.text(f'Colorfulness score: {score} ({colorfulness_score_mapping(score)})')
 
         img_bytes = io.BytesIO()
         edited_img.save(img_bytes, format='PNG')

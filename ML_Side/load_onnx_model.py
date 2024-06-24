@@ -1,7 +1,7 @@
 import logging
+import time
 from datetime import timedelta
 from pathlib import Path
-import time
 
 import cv2
 import numpy as np
@@ -19,7 +19,7 @@ logging.basicConfig(filename=LOGGING_DIR / 'app_events_history.log',
                     datefmt='%H:%M - %d %B %Y')
 
 
-def load_onnx_model(model_path: str | Path) -> (onnxruntime.InferenceSession, str):
+def load_onnx_model(model_path: str | Path):
     """
         Loads the model using an ONNX session and returns it alongside the
         input name of the computational graph.
